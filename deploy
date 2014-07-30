@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ "$#" -ne 1 ] ; then
+	echo "Usage: $0 <upload key>" >&2
+	exit
+fi
+
+cd "`dirname $0`"
+if hash zip 2>/dev/null; then
+	if hash curl 2> /dev/null; then
+		zip -qr - * | curl --data-binary @- "https://happening.im/plugin/$1"
+	elif hash wget 2> /dev/null; then
+		f=tmp-upload.zip
+		rm -f $f
+		zip -qr $f *
+		wget --content-on-error --post-file=$f "https://happening.im/plugin/$1" -O - -q
+		rm -f $f
+	else
+		echo "This script requires either 'curl' or 'wget' in your path. Hint: apt-get install curl" >&2
+		exit 1
+	fi
+else
+	echo "This script requires the 'zip' command in your path. Hint: apt-get install zip" >&2
+	exit 1
+fi
+
