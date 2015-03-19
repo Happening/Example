@@ -20,13 +20,28 @@ try {
     [System.IO.Compression.ZipFile]::CreateFromDirectory($Src, $Dest, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 } catch {
     echo "Unable to create a ZIP file. Aborting."
+	echo $_.Exception.GetType().FullName, $_.Exception.Message
     Exit
 }
 
 # Upload the file
 try {
-    Invoke-RestMethod -Uri "https://happening.im/plugin/$($Args[0])" -InFile $Dest -Method POST
-} catch {
-    echo "Unable to post ZIP file. Is your key correct? Aborting."
-    Exit
+	$OldEAP = $ErrorActionPreference
+	$ErrorActionPreference = 'SilentlyContinue'
+    $result = Invoke-RestMethod -Uri "https://happening.im/plugin/$($Args[0])" -InFile $Dest -Method POST
+	$ErrorActionPreference = $OldEAP
+	# Print success result
+	echo $result
+} catch [Exception] {
+	echo ">>> Something went wrong with submitting the plugin to Happening:"
+	# Print the exception message (includes the HTTP status code)
+	echo $_.Exception.Message
+	# Print the body of the server response (includes the error message from Happening)
+	$result = $_.Exception.Response.GetResponseStream()
+	$reader = New-Object System.IO.StreamReader($result)
+	$reader.BaseStream.Position = 0
+	$reader.DiscardBufferedData()
+	$responseBody = $reader.ReadToEnd();
+	echo $responseBody
+	Exit
 }
