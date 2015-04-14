@@ -21,6 +21,12 @@ In case you don't want to upload certain files, edit the `.deployignore` and add
 
 All that's left now is running `./deploy`
 
+The manifest file
+-----------------
+The manifest file holds configuration for you app. You can set things like `name`, `description` and `icon` here (a comprehensive list of all available icons will be made available shortly)
+
+Another important setting in the manifest file is the `api` setting, if you ommit it or set it to 1 the "legacy api" will be used. Make sure you set it to 2 unless you know what you're doing.
+
 About happening
 ---------------
 In case you don't know what this is about: Happening is a group app for iOS and Android, that allows you to create your own plugins in minutes. To get started signup at: https://develop.happening.im
