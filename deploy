@@ -1,24 +1,33 @@
 #!/bin/sh
 
-if [ "$#" -ne 1 ] ; then
-	echo "Usage: $0 <upload key>" >&2
-	exit
-fi
-
 cd "`dirname $0`"
+
+# see if we can use zip
 if hash zip 2>/dev/null; then
-	if hash curl 2> /dev/null; then
-		zip -qr - * | curl --data-binary @- "https://happening.im/plugin/$1"
-	elif hash wget 2> /dev/null; then
-		f=tmp-upload.zip
-		rm -f $f
-		zip -qr $f *
-		wget --content-on-error --post-file=$f "https://happening.im/plugin/$1" -O - -q
-		rm -f $f
-	else
-		echo "This script requires either 'curl' or 'wget' in your path. Hint: apt-get install curl" >&2
-		exit 1
-	fi
+    # create a temporary zip
+    f=tmp-upload.zip
+    rm -f $f
+
+    # zip the needed files
+    zip -qr $f * -x@.deployignore
+
+    #fetch the key from the key file
+    key=$(cat .deploykey)
+
+    # see if we can use curl, otherwise try wget, else fail
+    if hash curl 2> /dev/null; then
+        curl --data-binary @$f "https://happening.im/plugin/$key"
+    elif hash wget 2> /dev/null; then
+        wget --content-on-error --post-file=$f "https://happening.im/plugin/$key" -O - -q
+    else
+        echo "This script requires either 'curl' or 'wget' in your path. Hint: apt-get install curl" >&2
+        rm -f $f
+        exit 1
+    fi
+
+    # remove the temporary zip file
+    rm -f $f
+
 else
 	echo "This script requires the 'zip' command in your path. Hint: apt-get install zip" >&2
 	exit 1

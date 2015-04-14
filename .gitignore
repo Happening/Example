@@ -7,3 +7,5 @@
 deploy.meta
 description.meta
 icon.meta
+.deployignore
+.deploykey
