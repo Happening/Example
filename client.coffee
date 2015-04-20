@@ -6,54 +6,52 @@ Plugin = require 'plugin'
 Page = require 'page'
 Server = require 'server'
 Ui = require 'ui'
+{tr} = require 'i18n'
+Form = require 'form'
 
+exports.renderSettings = !->
+	if Db.shared
+		Dom.text tr("Game has started")
+
+	else
+		selectMember
+			name: 'opponent'
+			title: tr("Opponents")
+		selectMember
+			name: 'opponent'
+			title: tr("Opponents")
+		selectMember
+			name: 'opponent'
+			title: tr("Opponents")
+			
 exports.render = ->
-
 	Dom.section !->
-		Dom.style Box: 'middle'
-		Ui.avatar Plugin.userAvatar(),
-			onTap: !-> Plugin.userInfo()
-
-		Dom.div !->
-			Dom.style Flex: true
-			Dom.h2 "Hello, developer"
-			Dom.text "This is an example Group App demonstrating some Happening API's."
-
+			Ui.button "Next Black Card", !->
+				Server.call 'getBlackCard'
+	if !Db.shared.ref 'blackCard' 
+		Server.call 'getBlackCard'
+		
 	Dom.section !->
-		Dom.h2 "Reactive dom"
-		Dom.userText "Group Apps are built using Javascript or CoffeeScript. User interfaces are drawn using an abstraction upon the web DOM you know and love. It works **reactively**: changes in the data model are automatically mapped to changes in the interface."
-
-		clientCounter = Obs.create(0)
-		Dom.div !->
-			# whenever clientCounter's value is changed, only this DIV is redrawn
-			Ui.button "Increment me: " + clientCounter.get(), !->
-				clientCounter.modify (v) -> v+1
-
+		Dom.style 
+			background: "#000000"
+		Dom.h2 "Current Question Card"
+		Dom.text Db.shared.get 'blackCard'
+		
 	Dom.section !->
-		Dom.h2 "Server side code"
-		Dom.text "Group Apps contain both code that is run on clients (phones, tablets, web browsers) and on Happening's servers. Server side code is invoked using RPC calls from a client, using timers or subscribing to user events (eg: a user leaves a group)."
-		Dom.div !->
-			Ui.button "Get server time", ->
-				Server.call 'getTime', (time) ->
-					Modal.show "The time on the server is: #{time}"
-
-	Dom.section !->
-		Dom.h2 "Synchronized data store"
-		Dom.text "A hierarchical data store is available that is automatically synchronized across all the devices of group members. You write to it from server side code."
-		Dom.div !->
-			Ui.button "Synchronized counter: " + Db.shared.get('counter'), !->
-				Server.call 'incr'
-
-	Dom.section !->
-		Dom.h2 "Use the source"
-		Dom.text "We're working on writing more documentation. For now, experiment by looking at the sources of Group Apps we've made available on GitHub."
-		Dom.div !->
-			Ui.button "Visit github.com", !->
-				Plugin.openUrl 'https://github.com/happening'
-
-	Dom.section !->
-		Dom.h2 "Some examples"
-
+		Dom.style Box: true, padding: '4px 12px 30px 12px',background: "#E9E9E9"
+		for i in [0...4]
+			Server.call 'getWhiteCard',Plugin.userId(), i
+			userId = Plugin.userId();
+			Dom.div !->
+				uiUid = userId
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				number = 0
+				Dom.div !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), number
+					Dom.div !->
+						Dom.style fontSize: '75%'
+		###
 		Ui.button "Event API", !->
 			Page.nav !->
 				Page.setTitle "Event API"
@@ -136,6 +134,60 @@ exports.render = ->
 				Page.setTitle "Social API"
 				Dom.section !->
 					Dom.text "API to show comments or like boxes."
-				require('social').renderComments()
+				require('social').renderComments()###
 
+# input that handles selection of a member
+selectMember = (opts) !->
+	opts ||= {}
+	[handleChange, initValue] = Form.makeInput opts, (v) -> 0|v
 
+	value = Obs.create(initValue)
+	Form.box !->
+		Dom.style fontSize: '125%', paddingRight: '56px'
+		Dom.text opts.title||tr("Selected member")
+		v = value.get()
+		Dom.div !->
+			Dom.style color: (if v then 'inherit' else '#aaa')
+			Dom.text (if v then Plugin.userName(v) else tr("Nobody"))
+		if v
+			Ui.avatar Plugin.userAvatar(v), !->
+				Dom.style position: 'absolute', right: '6px', top: '50%', marginTop: '-20px'
+
+		Dom.onTap !->
+			Modal.show opts.selectTitle||tr("Select member"), !->
+				Dom.style width: '80%'
+				Dom.div !->
+					Dom.style
+						maxHeight: '40%'
+						overflow: 'auto'
+						_overflowScrolling: 'touch'
+						backgroundColor: '#eee'
+						margin: '-12px'
+
+					Plugin.users.iterate (user) !->
+						Ui.item !->
+							Ui.avatar user.get('avatar')
+							Dom.text user.get('name')
+
+							if +user.key() is +value.get()
+								Dom.style fontWeight: 'bold'
+
+								Dom.div !->
+									Dom.style
+										Flex: 1
+										padding: '0 10px'
+										textAlign: 'right'
+										fontSize: '150%'
+										color: Plugin.colors().highlight
+									Dom.text "✓"
+
+							Dom.onTap !->
+								handleChange user.key()
+								value.set user.key()
+								Modal.remove()
+			, (choice) !->
+				log 'choice', choice
+				if choice is 'clear'
+					handleChange ''
+					value.set ''
+			, ['cancel', tr("Cancel"), 'clear', tr("Clear")]
