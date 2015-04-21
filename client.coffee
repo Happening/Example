@@ -28,67 +28,72 @@ exports.render = ->
 	Dom.section !->
 			Ui.button "Next Black Card", !->
 				Server.call 'getBlackCard'
+			Ui.button "Me as Leader", !->
+				Server.call 'meLeader', Plugin.userId()
+			Ui.button "Someone as Leader", !->
+				Server.call 'meLeader', 0
 	if !Db.shared.ref 'blackCard' 
 		Server.call 'getBlackCard'
-		
 	Dom.section !->
 		Dom.style 
 			background: "#000000",
 			color: "#ffffff"
 		Dom.h2 "Current Question Card"
 		Dom.text Db.shared.get 'blackCard'
-		
-	Dom.section !->
-		
-		number = 0
-		Dom.style Box: true, padding: '4px 12px 30px 12px',background: "#E9E9E9"
+	if Plugin.userId() != Db.shared.get 'LeaderId'
 		for i in [0...6]
 			Server.call 'getWhiteCard',Plugin.userId(), i
+		Dom.section !->
 			
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			number = 0
+			Dom.style padding: '4px 12px 30px 12px',background: "#E9E9E9"
+			
+				
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 0
-				Dom.div !->
-					Dom.style fontSize: '75%'
-			Dom.onTap !->
-				Dom.text "Hello"
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text "Test" + Db.shared.get 'whiteCard', Plugin.userId(), 0
+					
+					Dom.div !->
+						Dom.style fontSize: '75%'
+				Dom.onTap !->
+					Server.call 'Answer',Plugin.userId(),Dom.getText()
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 1
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 1
+					Dom.div !->
+						Dom.style fontSize: '75%'
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 2
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 2
+					Dom.div !->
+						Dom.style fontSize: '75%'
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 3
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.style  background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 3
+					Dom.div !->
+						Dom.style fontSize: '75%'
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 4
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 4
+					Dom.div !->
+						Dom.style fontSize: '75%'
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 5
-				Dom.div !->
-					Dom.style fontSize: '75%'
+				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Dom.section !->
+					Dom.style margin: '4px', textAlign: 'center'
+					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 5
+					Dom.div !->
+						Dom.style fontSize: '75%'
 		###
 		Ui.button "Event API", !->
 			Page.nav !->
@@ -166,13 +171,15 @@ exports.render = ->
 					for name,value of items
 						text = "#{name} = " + JSON.stringify(value)
 						Ui.item text.replace(/,/g, ', ') # ensure some proper json wrapping on small screens
-
-		Ui.button "Social API", !->
-			Page.nav !->
-				Page.setTitle "Social API"
-				Dom.section !->
-					Dom.text "API to show comments or like boxes."
-				require('social').renderComments()###
+		###
+		Page.setFooter
+			label: tr("Go To The Chat")
+			action: !-> 
+				Page.nav !->
+					Page.setTitle "Chat"
+					Dom.section !->
+						Dom.text "API to show comments or like boxes."
+					require('social').renderComments()
 
 # input that handles selection of a member
 selectMember = (opts) !->

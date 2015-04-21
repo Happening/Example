@@ -1351,11 +1351,22 @@ exports.client_getBlackCard = ->
 		"_. All the cool kids are doing it."
 		"So I was _ in my cubicle at work, and suddenly _!"
 		"Baskin Robbins just added a 32nd flavor: _!"
-		"I can drive and ____ at the same time."
+		"I can drive and _ at the same time."
 		"_ ain't nothin' to fuck wit'!"
 	]
 	sel = Math.floor(Math.random()*blackCards.length)
 	Db.shared.set 'blackCard',blackCards[sel]
+	Db.shared.set 'test',"Test"
+	count = 7
+	for i in [0..blackCards[sel].length]
+		count++
+	Db.shared.set 'numberOfCardsNeeded',count
+
+exports.client_Answer = (ID,Text) !->
+	Db.shared.set 'Answers',"Hello"
+exports.client_meLeader = (ID) !->
+	Db.shared.set 'LeaderId', ID
+	
 exports.hnResponse = (data) !->
 	# called when the Http API has the result for the above request
 	
