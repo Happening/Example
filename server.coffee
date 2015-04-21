@@ -3,6 +3,7 @@ Db = require 'db'
 exports.onInstall = ->
 	# set the counter to 0 on plugin installation
 	Db.shared.set 'counter', 0
+	Db.shared.set 'Answers', null
 
 # exported functions prefixed with 'client_' are callable by our client code using `Server.call`
 exports.client_incr = ->
@@ -1357,13 +1358,19 @@ exports.client_getBlackCard = ->
 	sel = Math.floor(Math.random()*blackCards.length)
 	Db.shared.set 'blackCard',blackCards[sel]
 	Db.shared.set 'test',"Test"
-	count = 7
+	count = 0
 	for i in [0..blackCards[sel].length]
-		count++
+        count++ if i == "_"
+        log i
 	Db.shared.set 'numberOfCardsNeeded',count
 
 exports.client_Answer = (ID,Text) !->
+	Db.shared.set 'Answers',Text
+
+exports.client_Answer !->
 	Db.shared.set 'Answers',"Hello"
+exports.client_Answer = (Text) !->
+	Db.shared.set 'Answers',Text
 exports.client_meLeader = (ID) !->
 	Db.shared.set 'LeaderId', ID
 	
