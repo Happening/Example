@@ -33,24 +33,62 @@ exports.render = ->
 		
 	Dom.section !->
 		Dom.style 
-			background: "#000000"
+			background: "#000000",
+			color: "#ffffff"
 		Dom.h2 "Current Question Card"
 		Dom.text Db.shared.get 'blackCard'
 		
 	Dom.section !->
+		
+		number = 0
 		Dom.style Box: true, padding: '4px 12px 30px 12px',background: "#E9E9E9"
-		for i in [0...4]
+		for i in [0...6]
 			Server.call 'getWhiteCard',Plugin.userId(), i
-			userId = Plugin.userId();
-			Dom.div !->
-				uiUid = userId
-				Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
-				number = 0
+			
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 0
 				Dom.div !->
-					Dom.style margin: '4px', textAlign: 'center'
-					Dom.text Db.shared.get 'whiteCard', Plugin.userId(), number
-					Dom.div !->
-						Dom.style fontSize: '75%'
+					Dom.style fontSize: '75%'
+			Dom.onTap !->
+				Dom.text "Hello"
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 1
+				Dom.div !->
+					Dom.style fontSize: '75%'
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 2
+				Dom.div !->
+					Dom.style fontSize: '75%'
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 3
+				Dom.div !->
+					Dom.style fontSize: '75%'
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 4
+				Dom.div !->
+					Dom.style fontSize: '75%'
+		Dom.section !->
+			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+			Dom.section !->
+				Dom.style margin: '4px', textAlign: 'center'
+				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 5
+				Dom.div !->
+					Dom.style fontSize: '75%'
 		###
 		Ui.button "Event API", !->
 			Page.nav !->
