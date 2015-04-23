@@ -27,223 +27,59 @@ exports.renderSettings = !->
 					#Dom.onTap !->
 						#Server.sync 'advanceround'			
 exports.render = ->
-    selected = []
-	
-	Dom.section !->
-	    Ui.button "Next Black Card", !->
-		    Server.call 'getBlackCard'
-	    Ui.button "Me as Leader", !->
-		    Server.call 'meLeader', Plugin.userId()
-	    Ui.button "Someone as Leader", !->
-			Server.call 'meLeader', 0
-	if !Db.shared.ref 'blackCard' 
-		Server.call 'getBlackCard'
-    
-	Dom.section !->
-		Dom.style 
-			background: "#000000",
-			color: "#ffffff"
-		Dom.h2 "Current Question Card"
-		Dom.text Db.shared.get 'blackCard'
-	Dom.section !->
-	if Plugin.userId() != Db.shared.get 'LeaderId'
-		for i in [0...6]
-			Server.call 'getWhiteCard',Plugin.userId(), i
-
-		Dom.style padding: '4px 12px 30px 12px',background: "#E9E9E9"
-		
-			
+	log 'Begin Program'
+	if !Db.shared.get 'roundStarted'
 		Dom.section !->
-			backGround = if selected[0] then "#ffffff" else "#151515"
-			Dom.style Box: 'center vertical', Flex: 1, background: backGround,padding: 'auto auto 30px auto'
+			Dom.text "Waiting...."
+		if Plugin.userIsAdmin()
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 0
-				Dom.div !->
-					Dom.style fontSize: '75%'
-				Dom.onTap !->
-					selected[0] = true
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
+				Ui.button "Start Round", !->
+					Server.call 'StartRound'
+		else
 			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 1
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
-			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 2
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
-			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 3
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
-			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 4
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.section !->
-			Dom.style Box: 'center vertical', Flex: 1, background: "#ffffff",padding: 'auto auto 30px auto'
-			Dom.section !->
-				Dom.style margin: '4px', textAlign: 'center'
-				Dom.text Db.shared.get 'whiteCard', Plugin.userId(), 5
-				Dom.div !->
-					Dom.style fontSize: '75%'
-		Dom.div !-> 
-			Ui.button "Send Answers",!->
-				Server.send 'doneWithQuestion', Plugin.userId()
-		###
-		Ui.button "Event API", !->
-			Page.nav !->
-				Page.setTitle "Event API"
-				Dom.section !->
-					Dom.text "API to send push events (to users that are following your plugin)."
-					Ui.button "Push group event", !->
-						Server.send 'event'
-
-		Ui.button "Http API", !->
-			Page.nav !->
-				Page.setTitle "Http API"
-				Dom.section !->
-					Dom.h2 "Outgoing"
-					Dom.text "API to make HTTP requests from the Happening backend."
-					Ui.button "Fetch HackerNews headlines", !->
-						Server.send 'fetchHn'
-
-					Db.shared.iterate 'hn', (article) !->
-						Ui.item !->
-							Dom.text article.get('title')
-							Dom.onTap !->
-								Plugin.openUrl article.get('url')
-
-				Dom.section !->
-					Dom.h2 "Incoming Http"
-					Dom.text "API to receive HTTP requests in the Happening backend."
-					Dom.div ->
-						Dom.style
-							padding: '10px'
-							margin: '3px 0'
-							background: '#ddd'
-							_userSelect: 'text' # the underscore gets replace by -webkit- or whatever else is applicable
-						Dom.code "curl --data-binary 'your text' " + Plugin.inboundUrl()
-
-					Dom.div !->
-						Dom.style
-							padding: '10px'
-							background: Plugin.colors().bar
-							color: Plugin.colors().barText
-						Dom.text Db.shared.get('http') || "<awaiting request>"
-
-		Ui.button "Photo API", !->
-			Photo = require 'photo'
-			Page.nav !->
-				Page.setTitle "Photo API"
-				Dom.section !->
-					Dom.text "API to show, upload or manipulate photos."
-					Ui.bigButton "Pick photo", !->
-						Photo.pick()
-					if photoKey = Db.shared.get('photo')
-						(require 'photoview').render
-							key: photoKey
-
-		Ui.button "Plugin API", !->
-			Page.nav !->
-				Page.setTitle "Plugin API"
-				Dom.section !->
-					Dom.text "API to get user or group context."
-				Ui.list !->
-					items =
-						"Plugin.agent": Plugin.agent()
-						"Plugin.colors": Plugin.colors()
-						"Plugin.groupAvatar": Plugin.groupAvatar()
-						"Plugin.groupCode": Plugin.groupCode()
-						"Plugin.groupId": Plugin.groupId()
-						"Plugin.groupName": Plugin.groupName()
-						"Plugin.userAvatar": Plugin.userAvatar()
-						"Plugin.userId": Plugin.userId()
-						"Plugin.userIsAdmin": Plugin.userIsAdmin()
-						"Plugin.userName": Plugin.userName()
-						"Plugin.users": Plugin.users.get()
-						"Page.state": Page.state.get()
-						"Dom.viewport": Dom.viewport.get()
-					for name,value of items
-						text = "#{name} = " + JSON.stringify(value)
-						Ui.item text.replace(/,/g, ', ') # ensure some proper json wrapping on small screens
-		###
+				Dom.text "Only admin can start Rounds"
 	else
-        Dom.div !->
-            Dom.h2 "Waiting for answers!!"
-			
-###Page.setFooter
-			label: tr("Go To The Chat")
-			action: !-> 
-				Page.nav !->
-					Page.setTitle "Chat"
-					Dom.section !->
-						Dom.text "API to show comments or like boxes."
-					require('social').renderComments()###
+		Dom.section !->
+			Dom.text Db.shared.get 'blackCard'
+		if Plugin.userId() != Db.shared.get 'LeaderID'
+			renderHand Plugin.userId()	
+			###Dom.section !->
+				Ui->button "Send Anwser(s)", !->
+					sendAnswers###
 
-# input that handles selection of a member
-selectMember = (opts) !->
-	opts ||= {}
-	[handleChange, initValue] = Form.makeInput opts, (v) -> 0|v
-
-	value = Obs.create(initValue)
-	Form.box !->
-		Dom.style fontSize: '125%', paddingRight: '56px'
-		Dom.text opts.title||tr("Selected member")
-		v = value.get()
+		
+renderHand = (ID) !->
+	#if !Db.personal.get 'Cards' # Player has never had cards = Never been in this plugin
+	Dom.section !->
+		Dom.text "You have no Cards"
+	cards = Obs.create #create a new Card Object
+		1: {text: "hoi", selected: 0}
+		2: {text: "doei", selected: 1}
+		3: {text: "hoi", selected: 0}
+		4: {text: "doei", selected: 1}
+		5: {text: "hoi", selected: 0}
+	cards.iterate (card) !-> #TODO
+			Dom.section ->
+				Dom.text "Test: " + card.get('text')
+	Server.call 'setCards', cards,Plugin.userId() #call server function to add the Card object to the personal Database
+	
+	cards = Db.personal(Plugin.userId()).get 'Cards'
+	count = cards.count() #don't know if this works
+	cards.iterate (card) !-> # Loop door de loop van aantal kaarten door
+		#if card.get('text') != "" # kijk of de kaart undifined is
+			#card.set ('text',Server.call 'getWhiteCard') q
+			#card.set ('selected', 0)
+	
+	#all cards should be filled again
+	cards.iterate (card) !-> #iterate through all cards again
 		Dom.div !->
-			Dom.style color: (if v then 'inherit' else '#aaa')
-			Dom.text (if v then Plugin.userName(v) else tr("Nobody"))
-		if v
-			Ui.avatar Plugin.userAvatar(v), !->
-				Dom.style position: 'absolute', right: '6px', top: '50%', marginTop: '-20px'
-
-		Dom.onTap !->
-			Modal.show opts.selectTitle||tr("Select member"), !->
-				Dom.style width: '80%'
-				Dom.div !->
-					Dom.style
-						maxHeight: '40%'
-						overflow: 'auto'
-						_overflowScrolling: 'touch'
-						backgroundColor: '#eee'
-						margin: '-12px'
-
-					Plugin.users.iterate (user) !->
-						Ui.item !->
-							Ui.avatar user.get('avatar')
-							Dom.text user.get('name')
-
-							if +user.key() is +value.get()
-								Dom.style fontWeight: 'bold'
-
-								Dom.div !->
-									Dom.style
-										Flex: 1
-										padding: '0 10px'
-										textAlign: 'right'
-										fontSize: '150%'
-										color: Plugin.colors().highlight
-									Dom.text "✓"
-
-							Dom.onTap !->
-								handleChange user.key()
-								value.set user.key()
-								Modal.remove()
-			, (choice) !->
-				log 'choice', choice
-				if choice is 'clear'
-					handleChange ''
-					value.set ''
-			, ['cancel', tr("Cancel"), 'clear', tr("Clear")]
+			Dom.text card.text
+			Dom.onTap !-> #check if Card is being pressed
+				card.selected = 1 #if card is being pressed select should be put on true###
+			
+###	
+sendAnswers = !->
+	numberOfAnswers = 0
+	cards = Db.personal.get 'Cards'
+	for i in [0...5]
+		numberOfAnswers++ if cards.get(i).selected###

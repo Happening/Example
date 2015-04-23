@@ -23,7 +23,22 @@ exports.client_fetchHn = ->
 	Http.get
 		url: 'https://news.ycombinator.com'
 		name: 'hnResponse' # corresponds to exports.hnResponse below
-		
+
+exports.client_StartRound = ->
+	Db.shared.set 'roundStarted', 1
+	
+exports.client_setCards = (cards,userID) ->
+
+	number = 0
+	Db.shared.set 'Cards',  'Card',
+		text: "Doei"
+		selected: 1
+	for i in [1...6]
+		Db.personal(userID).set 'Cards', i,
+			text: cards.get(i,'text')
+			selected: 1 #card.get('selected')
+
+	
 exports.client_getWhiteCard = (ID,number) ->
 	whiteCards = [
 		"Flying sex snakes."
@@ -1358,12 +1373,7 @@ exports.client_getBlackCard = ->
 	sel = Math.floor(Math.random()*blackCards.length)
 	Db.shared.set 'blackCard',blackCards[sel]
 	Db.shared.set 'test',"Test"
-	count = 0
-	for i in [0..blackCards[sel].length]
-        count++ if i == "_"
-        log i
-	Db.shared.set 'numberOfCardsNeeded',count
-
+	
 exports.client_Answer = (ID,Text) !->
 	Db.shared.set 'Answers',Text
 
