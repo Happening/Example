@@ -1,5 +1,6 @@
 Db = require 'db'
-
+#Util = require 'util'
+#questions = Util.questions()
 exports.onInstall = ->
 	# set the counter to 0 on plugin installation
 	Db.shared.set 'counter', 0
@@ -27,19 +28,16 @@ exports.client_fetchHn = ->
 exports.client_StartRound = ->
 	Db.shared.set 'roundStarted', 1
 	
-exports.client_setCards = (cards,userID) ->
+exports.client_setCards = (text,selected,number,userID) ->
 
-	number = 0
-	Db.shared.set 'Cards',  'Card',
-		text: "Doei"
-		selected: 1
-	for i in [1...6]
-		Db.personal(userID).set 'Cards', i,
-			text: cards.get(i,'text')
-			selected: 1 #card.get('selected')
+
+	Db.shared.set 'Cards',userID, number,
+		text: text
+		selected: selected
+		number: number
 
 	
-exports.client_getWhiteCard = (ID,number) ->
+exports.client_getWhiteCard = (number,ID) ->
 	whiteCards = [
 		"Flying sex snakes."
 		"Michelle Obama's arms."
@@ -1089,9 +1087,10 @@ exports.client_getWhiteCard = (ID,number) ->
 		"Anal lice"
 		"Lightsaber Dildos	"																																																																																	
 	]
+	sel =Math.floor(Math.random()*whiteCards.length)
+	Db.shared.set 'whiteCardNew', number, ID,whiteCards[sel]
 	
-	sel = Math.floor(Math.random()*whiteCards.length)
-	Db.shared.set 'whiteCard',ID,number, whiteCards[sel]
+	
 exports.client_getBlackCard = ->
 	blackCards = [
 		"_?  There's an app for that."

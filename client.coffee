@@ -11,6 +11,7 @@ Markdown = require 'markdown'
 Form = require 'form'
 
 
+
 exports.renderSettings = !->
 	Dom.div !->
 		Markdown.render tr("Disclaimer: If you or anyone else in this group is offended by *anything* at all , then don't install this Group App. This Group App is not suitable for children, families, sensitive people or humanity in general.")
@@ -40,46 +41,46 @@ exports.render = ->
 				Dom.text "Only admin can start Rounds"
 	else
 		Dom.section !->
+			Ui.button "New Black Card", !->
+				Server.call 'getBlackCard'
+		Dom.section !->
+			Dom.h2 "Current black card:"
 			Dom.text Db.shared.get 'blackCard'
+			Dom.style background: "#000000", color: "#ffffff"
 		if Plugin.userId() != Db.shared.get 'LeaderID'
 			renderHand Plugin.userId()	
-			###Dom.section !->
-				Ui->button "Send Anwser(s)", !->
-					sendAnswers###
+			Dom.section !->
+				Ui.button "Send Anwser(s)", !->
+					sendAnswers
 
 		
 renderHand = (ID) !->
-	#if !Db.personal.get 'Cards' # Player has never had cards = Never been in this plugin
-	Dom.section !->
-		Dom.text "You have no Cards"
-	cards = Obs.create #create a new Card Object
-		1: {text: "hoi", selected: 0}
-		2: {text: "doei", selected: 1}
-		3: {text: "hoi", selected: 0}
-		4: {text: "doei", selected: 1}
-		5: {text: "hoi", selected: 0}
-	cards.iterate (card) !-> #TODO
-			Dom.section ->
-				Dom.text "Test: " + card.get('text')
-	Server.call 'setCards', cards,Plugin.userId() #call server function to add the Card object to the personal Database
+	if !Db.shared.get 'Cards', Plugin.userId() # Player has never had cards = Never been in this plugin
+		#log "Hello"
+		Dom.section !->
+			Dom.text "You have no Cards" + ID
+		cards = Obs.create
+			1: {text: "", ID, selected: 0,number:1}
+			2: {text: "", ID, selected: 0,number:2}
+			3: {text: "", ID, selected: 0,number:3}
+			4: {text: "", ID, selected: 0,number:4}
+			5: {text: "", ID, selected: 0,number:5}
+		i = 1
+		cards.iterate (card)  !->
+			Server.call 'setCards', card.get('text'),card.get('selected'),i,Plugin.userId() #call server function to add the Card object to the personal Database
+			i += 1
 	
-	cards = Db.personal(Plugin.userId()).get 'Cards'
-	count = cards.count() #don't know if this works
-	cards.iterate (card) !-> # Loop door de loop van aantal kaarten door
-		#if card.get('text') != "" # kijk of de kaart undifined is
-			#card.set ('text',Server.call 'getWhiteCard') q
-			#card.set ('selected', 0)
-	
-	#all cards should be filled again
-	cards.iterate (card) !-> #iterate through all cards again
-		Dom.div !->
-			Dom.text card.text
-			Dom.onTap !-> #check if Card is being pressed
-				card.selected = 1 #if card is being pressed select should be put on true###
-			
-###	
+	Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
+		Server.call 'getWhiteCard', card.get('number') ,ID
+		if card.get('text') == ""  # kijk of de kaart undifined is
+				Server.call 'setCards', Db.shared.get('whiteCardNew', card.get('number'),ID),card.get('selected'),card.get('number'),Plugin.userId()
+		Dom.section !->
+			Dom.text card.get('text') + " " + card.get('selected') 
+			Dom.onTap !->
+				Server.call 'setCards', card.get('text'),!card.get('selected'),card.get('number'),Plugin.userId()
+
 sendAnswers = !->
 	numberOfAnswers = 0
 	cards = Db.personal.get 'Cards'
 	for i in [0...5]
-		numberOfAnswers++ if cards.get(i).selected###
+		numberOfAnswers++ if cards.get(i).selected
