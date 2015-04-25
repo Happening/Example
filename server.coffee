@@ -28,20 +28,38 @@ exports.client_fetchHn = ->
 
 exports.client_StartRound = ->
 	Db.shared.set 'roundStarted', 1
+	Db.shared.set 'LeaderID', 1
 
-exports.client_newRound = (ID) ->
-	Db.shared.set 'Answer', ID, 'Answered',false
+exports.client_resetAnswers = (ID) ->
+	Db.shared.set 'Answer', ID, null
 	
+exports.client_newRound = (playerCount) ->
+	Db.shared.set 'Cards',null 
+	if Db.shared.get 'LeaderID' 
+		if !Db.shared.get 'LeaderID' is  1
+			leaderID = Db.shared.get 'LeaderID'
+			leaderID--
+		else 
+			leaderID = playerCount
+	else
+		leaderID = playerCount
 		
+	Db.shared.set 'LeaderID', leaderID
+		
+exports.client_setFinalAnswer = (string,ID) ->
+	Db.shared.set 'lastFilled',string
+	if Db.shared.get 'Points',ID
+		points = Db.shared.get('Points',ID) 
+		points++
+		Db.shared.set('Points',ID, points)
+	else
+		Db.shared.set('Points',ID, 1)
 exports.client_setCards = (text,selected,number,userID) ->
-
-
 	Db.shared.set 'Cards',userID, number,
 		text: text
 		selected: selected
 		number: number
 
-	
 exports.client_getWhiteCard = (number,ID) ->
 	whiteCards = [
 		"Flying sex snakes."
@@ -1093,8 +1111,7 @@ exports.client_getWhiteCard = (number,ID) ->
 		"Lightsaber Dildos	"																																																																																	
 	]
 	sel =Math.floor(Math.random()*whiteCards.length)
-	Db.shared.set 'whiteCardNew', number, ID,whiteCards[sel]
-	
+	Db.shared.set 'whiteCardNew', number, ID , whiteCards[sel]
 	
 exports.client_getBlackCard = ->
 	blackCards = [
@@ -1384,13 +1401,14 @@ exports.client_getBlackCard = ->
 	Db.shared.set 'blackCard',blackCards[sel]
 	
 exports.client_Answer = (ID) !->
-	Db.shared.set 'Answer',ID, 'Answered',true
+	Db.shared.set 'Answer',ID, 'Answered',true 
+	
 exports.client_setAnswer = (ID,number, text) !->
 	Db.shared.set 'Answer', ID, number,text
 	
-exports.client_setSelect = (number, ID,cardNumber) !->
-	Db.shared.set 'Cards',ID, cardNumber, 'selectNumber', number
-	Db.shared.set 'Cards',ID, 'numberSelected', number
+exports.client_setSelected = (boolean, number ,ID) !->
+	Db.shared.set 'Cards',ID, number, 'selected', !boolean
+
 exports.hnResponse = (data) !->
 	# called when the Http API has the result for the above request
 	

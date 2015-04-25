@@ -42,25 +42,49 @@ exports.render = ->
 				Dom.text "Only admin can start Rounds"
 	else
 		Dom.section !->
+			Dom.h2 "Test Buttons" 
 			Ui.button "New Black Card", !->
 				Server.call 'getBlackCard'
-			Ui.button "New Round", !->
+			Ui.button "New Round " + Plugin.users.count().get(), !->
 				Plugin.users.iterate (user) !->
-					Server.call 'newRound', user.key()
+					Server.call 'resetAnswers', user.key()
+				Server.call 'newRound',Plugin.users.count().get()
 				Server.call 'getBlackCard'
-			
+				
+		if Db.shared.get 'lastFilled'
+			Dom.section !->
+				Dom.h2 "last filled black card:"
+				Dom.h3 "filled in by: "
+				Dom.text Db.shared.get 'lastFilled'
+				Dom.style background: "#0077cf", color: "#ffffff"
 		Dom.section !->
 			Dom.h2 "Current black card:"
 			Dom.text Db.shared.get 'blackCard'
 			Dom.style background: "#000000", color: "#ffffff"
 		if Plugin.userId() != Db.shared.get 'LeaderID'
 			renderHand Plugin.userId()	
-			Ui.button "Send Anwser(s)", !->
-				sendAnswers Plugin.userId()
-					
-
-
-		
+			if !Db.shared.get 'Answer',Plugin.userId(), 'Answered'
+				Ui.button "Send Anwser(s)", !->
+					sendAnswers Plugin.userId()
+		else
+			numberOfAnswers = Db.shared.get 'numberOfCards'
+			Db.shared.observeEach 'Answer', (answer) !->
+				if answer.get('Answered')
+					Dom.section !->	
+						Ui.avatar Plugin.userAvatar(answer.key()), onTap: !-> Plugin.userInfo(answer.key())
+						for i in [1..numberOfAnswers]
+								Ui.item Db.shared.get('Answer',answer.key(),i)
+						Dom.onTap !->
+							Modal.confirm  tr("Do you want to select this as your anser"), !->
+								blackCard =  Db.shared.get 'blackCard'
+								for i in [1..numberOfAnswers]
+									if blackCard.indexOf('_') == 0
+										blackCard = Db.shared.get('Answer',answer.key(),i) + blackCard.slice(1)
+									else
+										blackCard = blackCard.slice(0,blackCard.indexOf('_')) + " " +  Db.shared.get('Answer',answer.key(),i)
+								Server.call 'setFinalAnswer', blackCard,answer.key()
+										
+								
 renderHand = (ID) !->
 	if !Db.shared.get 'Cards', Plugin.userId() # Player has never had cards = Never been in this plugin
 		#log "Hello"
@@ -83,10 +107,10 @@ renderHand = (ID) !->
 
 	if !Db.shared.get 'Answer',ID, 'Answered'
 		Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
-			
-			if card.get('text') == "" || !card.get('text')  # kijk of de kaart undifined is
-				Server.call 'getWhiteCard', card.get('number') ,ID
-				Server.call 'setCards', Db.shared.get('whiteCardNew', card.get('number'),ID),card.get('selected'),card.get('number'),Plugin.userId()
+			if !card.get('text')  # kijk of de kaart undifined is
+				Server.call 'getWhiteCard', ID ,card.get('number')
+				Server.call 'setCards', Db.shared.get('whiteCardNew',ID, card.get('number')),card.get('selected'),card.get('number'),Plugin.userId()
+				
 			renderCard card
 
 renderCard = (card) !->
@@ -100,7 +124,7 @@ renderCard = (card) !->
 			Dom.text " #{prefix} " +card.get('text')
 			Dom.style background: backColor, color: textColor
 			Dom.onTap !->
-				Server.call 'setCards', card.get('text'),!card.get('selected'),card.get('number'),Plugin.userId()
+				Server.call 'setSelected', card.get('selected'),card.get('number'),Plugin.userId()	
 				if !card.get('selected')
 					if Db.shared.get('Answer',Plugin.userId(),1) == "" || !  Db.shared.get('Answer',Plugin.userId(),1)
 						Server.call 'setAnswer', Plugin.userId(), 1, card.get('text')
@@ -110,6 +134,7 @@ renderCard = (card) !->
 						Server.call 'setAnswer', Plugin.userId(), 3, card.get('text')
 					else
 						Modal.show tr("Can't have more answers"), !->
+						
 				else
 					if Db.shared.get('Answer',Plugin.userId(),1) == card.get('text')
 						Server.call 'setAnswer', Plugin.userId(), 1, Db.shared.get('Answer',Plugin.userId(),2)
@@ -136,9 +161,8 @@ sendAnswers = (ID) !->
 				
 	else
 		Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
-			if card.get('selected') == true        
-				Server.call 'setCards', "",card.get('selected'),card.get('number'),Plugin.userId()
-		Server.call 'setAnswer', Plugin.userId(), 1, ""
-		Server.call 'setAnswer', Plugin.userId(), 2, ""
-		Server.call 'setAnswer', Plugin.userId(), 3, ""
+			if card.get('selected') == true    
+				#Server.call 'getWhiteCard', ID ,card.get('number')
+				Server.call 'setCards', null,false,card.get('number'),Plugin.userId()
+
 		Server.call 'Answer', ID
