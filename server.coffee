@@ -1,4 +1,5 @@
 Db = require 'db'
+Plugin = require 'plugin'
 #Util = require 'util'
 #questions = Util.questions()
 exports.onInstall = ->
@@ -27,7 +28,11 @@ exports.client_fetchHn = ->
 
 exports.client_StartRound = ->
 	Db.shared.set 'roundStarted', 1
+
+exports.client_newRound = (ID) ->
+	Db.shared.set 'Answer', ID, 'Answered',false
 	
+		
 exports.client_setCards = (text,selected,number,userID) ->
 
 
@@ -1370,19 +1375,22 @@ exports.client_getBlackCard = ->
 		"_ ain't nothin' to fuck wit'!"
 	]
 	sel = Math.floor(Math.random()*blackCards.length)
+	count = 0
+	for i in blackCards[sel]
+		count++ if i == '_'
+	if count == 0
+		count = 1
+	Db.shared.set 'numberOfCards', count
 	Db.shared.set 'blackCard',blackCards[sel]
-	Db.shared.set 'test',"Test"
 	
-exports.client_Answer = (ID,Text) !->
-	Db.shared.set 'Answers',Text
-
-exports.client_Answer !->
-	Db.shared.set 'Answers',"Hello"
-exports.client_Answer = (Text) !->
-	Db.shared.set 'Answers',Text
-exports.client_meLeader = (ID) !->
-	Db.shared.set 'LeaderId', ID
+exports.client_Answer = (ID) !->
+	Db.shared.set 'Answer',ID, 'Answered',true
+exports.client_setAnswer = (ID,number, text) !->
+	Db.shared.set 'Answer', ID, number,text
 	
+exports.client_setSelect = (number, ID,cardNumber) !->
+	Db.shared.set 'Cards',ID, cardNumber, 'selectNumber', number
+	Db.shared.set 'Cards',ID, 'numberSelected', number
 exports.hnResponse = (data) !->
 	# called when the Http API has the result for the above request
 	

@@ -36,6 +36,7 @@ exports.render = ->
 			Dom.section !->
 				Ui.button "Start Round", !->
 					Server.call 'StartRound'
+					Server.call 'getBlackCard'
 		else
 			Dom.section !->
 				Dom.text "Only admin can start Rounds"
@@ -43,15 +44,21 @@ exports.render = ->
 		Dom.section !->
 			Ui.button "New Black Card", !->
 				Server.call 'getBlackCard'
+			Ui.button "New Round", !->
+				Plugin.users.iterate (user) !->
+					Server.call 'newRound', user.key()
+				Server.call 'getBlackCard'
+			
 		Dom.section !->
 			Dom.h2 "Current black card:"
 			Dom.text Db.shared.get 'blackCard'
 			Dom.style background: "#000000", color: "#ffffff"
 		if Plugin.userId() != Db.shared.get 'LeaderID'
 			renderHand Plugin.userId()	
-			Dom.section !->
-				Ui.button "Send Anwser(s)", !->
-					sendAnswers
+			Ui.button "Send Anwser(s)", !->
+				sendAnswers Plugin.userId()
+					
+
 
 		
 renderHand = (ID) !->
@@ -65,22 +72,73 @@ renderHand = (ID) !->
 			3: {text: "", ID, selected: 0,number:3}
 			4: {text: "", ID, selected: 0,number:4}
 			5: {text: "", ID, selected: 0,number:5}
-		i = 1
+			6: {text: "", ID, selected: 0,number:6}
+			7: {text: "", ID, selected: 0,number:7}
+			8: {text: "", ID, selected: 0,number:8}
+			9: {text: "", ID, selected: 0,number:9}
+			10: {text: "", ID, selected: 0,number:10}
+
 		cards.iterate (card)  !->
-			Server.call 'setCards', card.get('text'),card.get('selected'),i,Plugin.userId() #call server function to add the Card object to the personal Database
-			i += 1
-	
-	Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
-		Server.call 'getWhiteCard', card.get('number') ,ID
-		if card.get('text') == ""  # kijk of de kaart undifined is
+			Server.call 'setCards', card.get('text'),card.get('selected'),card.get('number'),Plugin.userId() #call server function to add the Card object to the personal Database
+
+	if !Db.shared.get 'Answer',ID, 'Answered'
+		Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
+			
+			if card.get('text') == "" || !card.get('text')  # kijk of de kaart undifined is
+				Server.call 'getWhiteCard', card.get('number') ,ID
 				Server.call 'setCards', Db.shared.get('whiteCardNew', card.get('number'),ID),card.get('selected'),card.get('number'),Plugin.userId()
-		Dom.section !->
-			Dom.text card.get('text') + " " + card.get('selected') 
+			renderCard card
+
+renderCard = (card) !->
+	backColor = if card.get('selected') then "#0077cf" else "#ffffff"
+	textColor = if card.get('selected') then "#ffffff" else "#000000"
+	prefix = ""
+	prefix = "1:" if Db.shared.get('Answer',Plugin.userId(),1) == card.get('text') && prefix == ""  
+	prefix = "2:" if Db.shared.get('Answer',Plugin.userId(),2) == card.get('text') && prefix == ""   
+	prefix = "3:" if Db.shared.get('Answer',Plugin.userId(),3) == card.get('text') && prefix == "" 
+	Dom.section !->
+			Dom.text " #{prefix} " +card.get('text')
+			Dom.style background: backColor, color: textColor
 			Dom.onTap !->
 				Server.call 'setCards', card.get('text'),!card.get('selected'),card.get('number'),Plugin.userId()
-
-sendAnswers = !->
-	numberOfAnswers = 0
-	cards = Db.personal.get 'Cards'
-	for i in [0...5]
-		numberOfAnswers++ if cards.get(i).selected
+				if !card.get('selected')
+					if Db.shared.get('Answer',Plugin.userId(),1) == "" || !  Db.shared.get('Answer',Plugin.userId(),1)
+						Server.call 'setAnswer', Plugin.userId(), 1, card.get('text')
+					else if Db.shared.get('Answer',Plugin.userId(),2) == ""|| !  Db.shared.get('Answer',Plugin.userId(),2)
+						Server.call 'setAnswer', Plugin.userId(), 2, card.get('text')
+					else if Db.shared.get('Answer',Plugin.userId(),3) == "" || !  Db.shared.get('Answer',Plugin.userId(),3)
+						Server.call 'setAnswer', Plugin.userId(), 3, card.get('text')
+					else
+						Modal.show tr("Can't have more answers"), !->
+				else
+					if Db.shared.get('Answer',Plugin.userId(),1) == card.get('text')
+						Server.call 'setAnswer', Plugin.userId(), 1, Db.shared.get('Answer',Plugin.userId(),2)
+						Server.call 'setAnswer', Plugin.userId(), 2, Db.shared.get('Answer',Plugin.userId(),3)
+						Server.call 'setAnswer', Plugin.userId(), 3, ""
+					if Db.shared.get('Answer',Plugin.userId(),2) == card.get('text')
+						Server.call 'setAnswer', Plugin.userId(), 2, Db.shared.get('Answer',Plugin.userId(),3)
+						Server.call 'setAnswer', Plugin.userId(), 3, ""
+					if Db.shared.get('Answer',Plugin.userId(),3) == card.get('text')
+						Server.call 'setAnswer', Plugin.userId(), 3, ""
+				
+sendAnswers = (ID) !->
+	numberOfAnswers = Db.shared.get 'numberOfCards' 
+	Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
+		if card.get('selected') == true      
+			numberOfAnswers--  
+		
+	if numberOfAnswers != 0
+		Modal.show tr("Wrong number of answer(s)"), !->
+			if numberOfAnswers < 0
+				Dom.div "You have " + numberOfAnswers *-1 + " answer to much!"
+			else 
+				Dom.div "You have " + numberOfAnswers + " answer to few!"
+				
+	else
+		Db.shared.observeEach 'Cards',Plugin.userId(), (card) !->
+			if card.get('selected') == true        
+				Server.call 'setCards', "",card.get('selected'),card.get('number'),Plugin.userId()
+		Server.call 'setAnswer', Plugin.userId(), 1, ""
+		Server.call 'setAnswer', Plugin.userId(), 2, ""
+		Server.call 'setAnswer', Plugin.userId(), 3, ""
+		Server.call 'Answer', ID
