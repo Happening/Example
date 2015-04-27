@@ -22,7 +22,7 @@ zip -qr $tmp * -x@.deployignore
 if hash curl 2> /dev/null; then
 	curl --data-binary @$tmp ${url}
 elif hash wget 2> /dev/null; then
-	wget --content-on-error --post-file=$tmp ${url} -O - -q
+	wget.exe --no-check-certificate --post-file=$tmp ${url}
 else
 	echo "This script requires either 'curl' or 'wget' in your path. Hint: apt-get install curl" >&2
 	rm -f $tmp
