@@ -28,37 +28,42 @@ exports.renderSettings = !->
 					#Dom.onTap !->
 						#Server.sync 'advanceround'			
 exports.render = ->
-	log 'Begin Program'
 	if !Db.shared.get 'roundStarted'
 		Dom.section !->
 			Dom.text "Waiting...."
 		if Plugin.userIsAdmin()
 			Dom.section !->
 				Ui.button "Start Round", !->
-					Server.call 'StartRound'
+					Server.call 'StartRound',Plugin.users.count().get()
 					Server.call 'getBlackCard'
 		else
 			Dom.section !->
 				Dom.text "Only admin can start Rounds"
 	else
-		Dom.section !->
-			Dom.h2 "Test Buttons" 
-			Ui.button "New Black Card", !->
-				Server.call 'getBlackCard'
-			Ui.button "New Round " + Plugin.users.count().get(), !->
-				Plugin.users.iterate (user) !->
-					Server.call 'resetAnswers', user.key()
-				Server.call 'newRound',Plugin.users.count().get()
-				Server.call 'getBlackCard'
+		if Plugin.userIsAdmin()
+			Dom.section !->
+				Dom.h2 "Test Buttons" 
+				Ui.button "New Black Card", !->
+					Server.call 'getBlackCard'
+				Ui.button "New Round " + Plugin.users.count().get(), !->
+					Plugin.users.iterate (user) !->
+						Server.call 'resetAnswers', user.key()
+					Server.call 'newRound',Plugin.users.count().get()
+					Server.call 'getBlackCard'
+				Ui.button "Reset all", !->
+					Server.call 'reset'
+				Ui.button "Cancel waiting", !->
+					Server.call 'stopAnswering'
 				
 		if Db.shared.get 'lastFilled'
 			Dom.section !->
 				Dom.h2 "last filled black card:"
-				Dom.h3 "filled in by: "
+				Dom.h3 "Answer by: " + Plugin.userName(Db.shared.get 'LastFilledBy')
 				Dom.text Db.shared.get 'lastFilled'
 				Dom.style background: "#0077cf", color: "#ffffff"
 		Dom.section !->
 			Dom.h2 "Current black card:"
+			Dom.h3 "Leader is: " + Plugin.userName(Db.shared.get 'LeaderID')
 			Dom.text Db.shared.get 'blackCard'
 			Dom.style background: "#000000", color: "#ffffff"
 		if Plugin.userId() != Db.shared.get 'LeaderID'
@@ -67,22 +72,35 @@ exports.render = ->
 				Ui.button "Send Anwser(s)", !->
 					sendAnswers Plugin.userId()
 		else
+			Dom.section !->
+				Dom.text "You are the Leader of this round, you'll have to select the best answer possible when the 5 minutes waiting time is over.."
 			numberOfAnswers = Db.shared.get 'numberOfCards'
 			Db.shared.observeEach 'Answer', (answer) !->
 				if answer.get('Answered')
 					Dom.section !->	
 						Ui.avatar Plugin.userAvatar(answer.key()), onTap: !-> Plugin.userInfo(answer.key())
+						Dom.text "Answer by: " + Plugin.userName(answer.key())
 						for i in [1..numberOfAnswers]
 								Ui.item Db.shared.get('Answer',answer.key(),i)
 						Dom.onTap !->
-							Modal.confirm  tr("Do you want to select this as your anser"), !->
-								blackCard =  Db.shared.get 'blackCard'
-								for i in [1..numberOfAnswers]
-									if blackCard.indexOf('_') == 0
-										blackCard = Db.shared.get('Answer',answer.key(),i) + blackCard.slice(1)
-									else
-										blackCard = blackCard.slice(0,blackCard.indexOf('_')) + " " +  Db.shared.get('Answer',answer.key(),i)
-								Server.call 'setFinalAnswer', blackCard,answer.key()
+							if Db.shared.get 'selectAnswer' 
+								Modal.confirm  tr("Do you want to select this as your anser"), !->
+									blackCard =  Db.shared.get 'blackCard'
+									for i in [1..numberOfAnswers]
+										if blackCard.indexOf('_') == 0
+											blackCard = Db.shared.get('Answer',answer.key(),i) + blackCard.slice(1)
+										else
+											blackCard = blackCard.slice(0,blackCard.indexOf('_')) + " " +  Db.shared.get('Answer',answer.key(),i) + " " +  blackCard.slice(blackCard.indexOf('_'))
+									Server.call 'setFinalAnswer', blackCard,answer.key()
+							else 
+								Modal.show "Wait for the 5 minute timer to run out"
+	Page.setFooter
+		label: tr("Go To The Chat")
+		action: !-> 
+			Page.nav !->
+				Page.setTitle "Chat"
+
+				require('social').renderComments()
 										
 								
 renderHand = (ID) !->

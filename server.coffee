@@ -1,5 +1,7 @@
 Db = require 'db'
 Plugin = require 'plugin'
+Timer = require 'timer'
+Event = require 'event'
 #Util = require 'util'
 #questions = Util.questions()
 exports.onInstall = ->
@@ -15,45 +17,50 @@ exports.client_incr = ->
 exports.client_getTime = (cb) ->
 	cb.reply new Date()
 
-exports.onHttp = (request) ->
-	# special entrypoint for the Http API: called whenever a request is made to our plugin's inbound URL
-	#Db.shared.set 'http', data
-	#request.respond 200, "Thanks for your input\n"
-
 exports.client_fetchHn = ->
 	Http = require 'http'
 	Http.get
 		url: 'https://news.ycombinator.com'
 		name: 'hnResponse' # corresponds to exports.hnResponse below
 
-exports.client_StartRound = ->
+exports.client_StartRound = (playerCount)->
+	Db.shared.set 'playerCount', playerCount
 	Db.shared.set 'roundStarted', 1
 	Db.shared.set 'LeaderID', 1
 
 exports.client_resetAnswers = (ID) ->
 	Db.shared.set 'Answer', ID, null
 	
-exports.client_newRound = (playerCount) ->
-	Db.shared.set 'Cards',null 
+exports.client_newRound = exports.newRound = newRound = (playerCount = Db.shared.get 'playerCount') !->
+	Db.shared.set 'Cards',null  
+	Db.shared.set 'Answer', null 
 	if Db.shared.get 'LeaderID' 
-		if !Db.shared.get 'LeaderID' is  1
-			leaderID = Db.shared.get 'LeaderID'
-			leaderID--
-		else 
+		
+		leaderID = Db.shared.get 'LeaderID'
+		leaderID--
+		if leaderID == 0 
 			leaderID = playerCount
 	else
 		leaderID = playerCount
 		
 	Db.shared.set 'LeaderID', leaderID
+	Db.shared.set 'selectAnswer', false  
+	Db.shared.set 'firstAnswered',false 
 		
 exports.client_setFinalAnswer = (string,ID) ->
 	Db.shared.set 'lastFilled',string
+	Db.shared.set 'LastFilledBy', ID
 	if Db.shared.get 'Points',ID
 		points = Db.shared.get('Points',ID) 
 		points++
 		Db.shared.set('Points',ID, points)
 	else
 		Db.shared.set('Points',ID, 1)
+	Event.create
+		text: "Best answer is chosen, it was the answer from "+  Plugin.userName(ID)
+	Timer.cancel()
+	Timer.set 1, 'newRound'
+		
 exports.client_setCards = (text,selected,number,userID) ->
 	Db.shared.set 'Cards',userID, number,
 		text: text
@@ -1402,6 +1409,11 @@ exports.client_getBlackCard = ->
 	
 exports.client_Answer = (ID) !->
 	Db.shared.set 'Answer',ID, 'Answered',true 
+	if !Db.shared.get 'firstAnswered'
+		Db.shared.set 'firstAnswered',true
+		Timer.set 5000, 'firstAnswer'
+		Timer.set 300000, 'stopAnswering'
+		Timer.set 600000, 'notSelected'
 	
 exports.client_setAnswer = (ID,number, text) !->
 	Db.shared.set 'Answer', ID, number,text
@@ -1430,13 +1442,38 @@ exports.onPhoto = (info) !->
 	log 'onPhoto', JSON.stringify(info)
 	Db.shared.set 'photo', info.key
 
-exports.client_event = !->
-	# send push event to all group members
-	Event = require 'event'
+exports.firstAnswer = ->
 	Event.create
-		text: "Test event"
-		# sender: Plugin.userId() # prevent push (but bubble) to sender
-		# for: [1, 2] # to only include group members 1 and 2
-		# for: [-3] # to exclude group member 3
-		# for: ['admin', 2] # to group admins and member 2
+		text: "The first Answer is given, you have 5 minutes to give yours"
+		
+exports.client_stopAnswering = exports.stopAnswering = ->
+	Db.shared.set 'selectAnswer', true 
+	Event.create
+		text: "The answers are selected, is now up to the Round leader"
+		
+exports.notSelected = ->
+	Event.create
+		text: "No answer selected, moving to next round"	
+	Timer.cancel()
+	Timer.set 1, 'newRound'
+		
+exports.client_event = makeEvent = (args) !->
+	# send push event to all group members
+	
+	Event.create
+		text: args
 
+exports.client_reset = !->
+	Db.shared.set 'Answer',null 
+	Db.shared.set 'Cards',null 
+	Db.shared.set 'LastFilledBy',null 
+	Db.shared.set 'LeaderID',null 
+	Db.shared.set 'Points',null 
+	Db.shared.set 'blackCard',null 
+	Db.shared.set 'firstAnswered',null 
+	Db.shared.set 'lastFilled',null 
+	Db.shared.set 'numberOfCards',null 
+	Db.shared.set 'playerCount',null 
+	Db.shared.set 'roundStarted',null 
+	Db.shared.set 'selectAnswer',null 
+	Db.shared.set 'whiteCardNew',null 
