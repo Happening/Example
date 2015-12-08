@@ -1,0 +1,3 @@
+name: Example
+description: An example plugin. Use this as the base for your own glorious plugins!
+api: 3
