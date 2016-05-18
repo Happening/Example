@@ -14,7 +14,7 @@ fi
 cd "`dirname $0`"
 
 tmp=.upload.tar.gz
-rm --force $tmp
+rm -f $tmp
 tar --create --gzip --file $tmp --exclude-from .deployignore *
 	# .* is not included
 
