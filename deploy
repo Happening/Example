@@ -1,0 +1,28 @@
+#!/bin/sh
+
+if ! (hash tar curl || hash tar wget) 2>/dev/null; then
+	echo "This script requires 'tar' and either 'curl' or 'wget' on your system." >&2
+	exit 1
+fi
+
+url="https://happening.im/plugin/${1-$(cat .deploykey 2>/dev/null)}"
+if [ $? -ne 0 ]; then
+	echo "Either supply a deploy key as first argument or populate .deploykey"
+	exit 1
+fi
+
+cd "`dirname $0`"
+
+tmp=.upload.tar.gz
+rm -f $tmp
+tar --create --gzip --file $tmp --exclude-from .deployignore *
+	# .* is not included
+
+if hash curl 2>/dev/null; then
+	curl --data-binary @$tmp $url
+else
+	wget --content-on-error --post-file=$tmp $url --output-document=- --quiet
+fi
+
+rm $tmp
+
